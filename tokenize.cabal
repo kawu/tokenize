@@ -1,0 +1,13 @@
+Name:               tokenize
+Version:            0.0.1
+Synopsis:           Tokenization utilities
+License:            BSD3
+License-file:       LICENSE
+Author:             Jakub Waszczuk
+Maintainer:         waszczuk.kuba@gmail.com
+Build-type:         Simple
+Exposed-modules:    Data.Token
+		    Text.Tokenize.Simple.String
+		    Text.Tokenize.Util.String
+Build-Depends:      base
+                  , polyparse
