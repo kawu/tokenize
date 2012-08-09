@@ -13,17 +13,22 @@ import Data.Char (GeneralCategory)
 type Regex = UnionRE
 
 newtype UnionRE = UnionRE { unUnion :: [SeqRE] }
+    deriving (Show)
 
 newtype SeqRE = SeqRE { unSeq :: [ModRE] }
+    deriving (Show)
 
 data ModRE = ModRE
     { atom  :: AtomRE
     , mod   :: Mod }
+    deriving (Show)
 
 -- | TODO: Complete the list of modifiers.
 data Mod
-    = Star
+    = NoMod
+    | Star
     | Plus
+    deriving (Show)
 
 data AtomRE
     = Symbol Char
@@ -40,7 +45,9 @@ data AtomRE
     | LineBeg
     | LineEnd
     | Dot
+    deriving (Show)
 
 data RangeRE = RangeRE
     { ranNeg    :: Bool
     , ranElems  :: [(Char, Char)] }
+    deriving (Show)

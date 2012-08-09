@@ -39,6 +39,7 @@ atomP = Brackets <$> bracket (char '(') (char ')') regexP
     <|> LineBeg <$ char '^'
     <|> LineEnd <$ char '$'
     <|> Dot <$ char '.'
+    <|> Symbol <$> next
 
 uniPropP :: P GeneralCategory
 uniPropP = undefined
@@ -49,6 +50,7 @@ hexP = undefined
 modP :: P Mod
 modP  = Star <$ char '*'
     <|> Plus <$ char '+'
+    <|> pure NoMod
 
 char :: Char -> P Char
 char c = satisfy (==c)
@@ -64,7 +66,7 @@ parseRegex :: String -> Regex
 parseRegex xs = case runParser regexP xs of
     (Left msg, _)   -> error $ "[parseRegex] " ++ msg
     (Right x, [])   -> x
-    (_, xs)         -> error $ "[parseRegex] tokens not consumed: " ++ xs
+    (_, (x:xs))     -> error $ "[parseRegex] tokens not consumed: " ++ (x:xs)
 
 -- -- | Suffix.
 -- *
