@@ -7,7 +7,12 @@ Author:             Jakub Waszczuk
 Maintainer:         waszczuk.kuba@gmail.com
 Build-type:         Simple
 Exposed-modules:    Data.Token
+		    Data.SRX
 		    Text.Tokenize.Simple.String
 		    Text.Tokenize.Util.String
+		    Text.SRX
+Other-modules:      Paths_tokenize
 Build-Depends:      base
                   , polyparse
+                  , polysoup
+Data-files:         config/segment.srx
