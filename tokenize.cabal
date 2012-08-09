@@ -13,6 +13,7 @@ Exposed-modules:    Data.Token
 		    Text.SRX
 Other-modules:      Paths_tokenize
 Build-Depends:      base
+                  , regex-applicative
                   , polyparse
                   , polysoup
 Data-files:         config/segment.srx
