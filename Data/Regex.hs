@@ -4,11 +4,15 @@ module Data.Regex
 , SeqRE (..)
 , ModRE (..)
 , Mod (..)
+, ModType (..)
+, Greediness (..)
 , AtomRE (..)
 , RangeRE (..)
+, RanPartRE (..)
 ) where
 
 import Data.Char (GeneralCategory)
+import Text.Regex.Applicative (Greediness (..))
 
 type Regex = UnionRE
 
@@ -23,11 +27,21 @@ data ModRE = ModRE
     , mod   :: Mod }
     deriving (Show)
 
--- | TODO: Complete the list of modifiers.
+-- | RE modifier. It can be parametrized with modifier greediness.
 data Mod
     = NoMod
-    | Star
-    | Plus
+    | Mod
+        { modType   :: ModType
+        , modGreed  :: Greediness }
+    deriving (Show)
+
+data ModType
+    = Many              -- *
+    | Some              -- +
+    | Maybe             -- ?
+    | Times Int         -- {n}
+    | AtLeast Int       -- {n,}
+    | Between Int Int   -- {n,m}
     deriving (Show)
 
 data AtomRE
@@ -49,5 +63,12 @@ data AtomRE
 
 data RangeRE = RangeRE
     { ranNeg    :: Bool
-    , ranElems  :: [(Char, Char)] }
+    , ranElems  :: [RanPartRE] }
+    deriving (Show)
+
+data RanPartRE
+    = RanSymbol Char
+    | RanUniProp Bool GeneralCategory
+    | RanRange Char Char
+    | RanEmbed RangeRE
     deriving (Show)
