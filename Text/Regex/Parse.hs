@@ -3,6 +3,7 @@ module Text.Regex.Parse
 ) where
 
 import qualified Data.Char as C
+import qualified Data.Set as S
 import Data.Char (isDigit, isAlphaNum)
 import Data.Maybe (isJust)
 import Numeric (readHex)
@@ -28,14 +29,17 @@ atomP :: P AtomRE
 atomP = Brackets <$> bracketP '(' ')' regexP
     <|> WordBoundary <$ string "\\b"
     <|> Space <$ string "\\s"
-    <|> UniProp True <$> (string "\\p" *> uniPropP)
+    <|> UniProp True  <$> (string "\\p" *> uniPropP)
     <|> UniProp False <$> (string "\\P" *> uniPropP)
+    <|> UniProp True  [C.DecimalNumber] <$ string "\\d"
     <|> Range  <$> rangeP
     <|> LineBeg <$ char '^'
     <|> LineEnd <$ char '$'
     <|> Dot <$ char '.'
     <|> Symbol <$> specialP
-    <|> Symbol <$> next
+    <|> Symbol <$> satisfy (not . flip S.member escSet)
+  where
+    escSet = S.fromList escaped
 
 specialP :: P Char
 specialP =  '\t' <$ string "\\t"
@@ -47,7 +51,10 @@ specialP =  '\t' <$ string "\\t"
 escapedP :: P Char
 escapedP = foldl1 (<|>)
     [ do { char '\\'; char x }
-    | x <- "*?+[(){}^$|\\./" ]
+    | x <- escaped ]
+
+escaped :: String
+escaped = "*?+[(){}^$|\\./"
 
 hexP :: P Char
 hexP  = toEnum . fst . head . readHex
@@ -116,39 +123,60 @@ string (x:xs) = do
 bracketP :: Char -> Char -> P a -> P a
 bracketP beg end p = bracket (char beg) (char end) p
 
-uniPropP :: P C.GeneralCategory
-uniPropP = bracketP '{' '}' (exactly 2 alphaNumP) >>= \xs ->
+uniPropP :: P [C.GeneralCategory]
+uniPropP = bracketP '{' '}' (some alphaNumP) >>= \xs ->
   return $ case xs of
-    "Lu" -> C.UppercaseLetter 
-    "Ll" -> C.LowercaseLetter 
-    "Lt" -> C.TitlecaseLetter 
-    "Lm" -> C.ModifierLetter  
-    "Lo" -> C.OtherLetter 
-    "Mn" -> C.NonSpacingMark  
-    "Mc" -> C.SpacingCombiningMark    
-    "Me" -> C.EnclosingMark   
-    "Nd" -> C.DecimalNumber   
-    "Nl" -> C.LetterNumber    
-    "No" -> C.OtherNumber 
-    "Pc" -> C.ConnectorPunctuation    
-    "Pd" -> C.DashPunctuation 
-    "Ps" -> C.OpenPunctuation 
-    "Pe" -> C.ClosePunctuation    
-    "Pi" -> C.InitialQuote    
-    "Pf" -> C.FinalQuote  
-    "Po" -> C.OtherPunctuation    
-    "Sm" -> C.MathSymbol  
-    "Sc" -> C.CurrencySymbol  
-    "Sk" -> C.ModifierSymbol  
-    "So" -> C.OtherSymbol 
-    "Zs" -> C.Space   
-    "Zl" -> C.LineSeparator   
-    "Zp" -> C.ParagraphSeparator  
-    "Cc" -> C.Control 
-    "Cf" -> C.Format  
-    "Cs" -> C.Surrogate   
-    "Co" -> C.PrivateUse  
-    "Cn" -> C.NotAssigned 
+    "Lu" -> [C.UppercaseLetter]
+    "Ll" -> [C.LowercaseLetter]
+    "Lt" -> [C.TitlecaseLetter]
+    "Lm" -> [C.ModifierLetter]
+    "Lo" -> [C.OtherLetter]
+    "L"  -> letterCats
+    "Mn" -> [C.NonSpacingMark]
+    "Mc" -> [C.SpacingCombiningMark]
+    "Me" -> [C.EnclosingMark]
+    "Nd" -> [C.DecimalNumber]
+    "Nl" -> [C.LetterNumber]
+    "No" -> [C.OtherNumber]
+    "N"  -> numberCats
+    "Pc" -> [C.ConnectorPunctuation]
+    "Pd" -> [C.DashPunctuation]
+    "Ps" -> [C.OpenPunctuation]
+    "Pe" -> [C.ClosePunctuation]
+    "Pi" -> [C.InitialQuote ]
+    "Pf" -> [C.FinalQuote]
+    "P"  -> punctCats
+    "Po" -> [C.OtherPunctuation]
+    "Sm" -> [C.MathSymbol]
+    "Sc" -> [C.CurrencySymbol]
+    "Sk" -> [C.ModifierSymbol]
+    "So" -> [C.OtherSymbol]
+    "Zs" -> [C.Space]
+    "Zl" -> [C.LineSeparator]
+    "Zp" -> [C.ParagraphSeparator]
+    "Cc" -> [C.Control]
+    "Cf" -> [C.Format]
+    "Cs" -> [C.Surrogate]
+    "Co" -> [C.PrivateUse]
+    "Cn" -> [C.NotAssigned]
+  where
+    letterCats =
+        [ C.UppercaseLetter
+        , C.LowercaseLetter
+        , C.TitlecaseLetter
+        , C.ModifierLetter
+        , C.OtherLetter ]
+    punctCats = 
+        [ C.ConnectorPunctuation
+        , C.DashPunctuation
+        , C.OpenPunctuation
+        , C.ClosePunctuation
+        , C.InitialQuote
+        , C.FinalQuote ]
+    numberCats = 
+        [ C.DecimalNumber
+        , C.LetterNumber
+        , C.OtherNumber ]
 
 alphaNumP :: P Char
 alphaNumP = satisfy isAlphaNum
@@ -157,4 +185,6 @@ parseRegex :: String -> Regex
 parseRegex xs = case runParser regexP xs of
     (Left msg, _)   -> error $ "[parseRegex] " ++ msg
     (Right x, [])   -> x
-    (_, (x:xs))     -> error $ "[parseRegex] tokens not consumed: " ++ (x:xs)
+    (_, ys)         -> error $
+        "[parseRegex] parsing: " ++ xs ++ "\n" ++
+        "[parseRegex] tokens not consumed: " ++ ys

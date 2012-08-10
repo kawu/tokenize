@@ -48,12 +48,8 @@ data AtomRE
     = Symbol Char
     | Brackets UnionRE
     | WordBoundary
-    -- | LineFeed       <- as Symbol
-    -- | CarriageRet    <- as Symbol
-    | UniProp Bool GeneralCategory
+    | UniProp Bool [GeneralCategory]
     | Space
-    -- | Tab            <- as Symbol
-    -- | HexSymbol Int  <- as Symbol
     | WordChar Bool
     | Range RangeRE
     | LineBeg
@@ -68,7 +64,7 @@ data RangeRE = RangeRE
 
 data RanPartRE
     = RanSymbol Char
-    | RanUniProp Bool GeneralCategory
+    | RanUniProp Bool [GeneralCategory]
     | RanRange Char Char
     | RanEmbed RangeRE
     deriving (Show)

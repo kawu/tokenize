@@ -16,6 +16,7 @@ Exposed-modules:    Data.Token
 		    Text.Regex.Parse
 Other-modules:      Paths_tokenize
 Build-Depends:      base
+                  , containers
                   , regex-applicative
                   , polyparse
                   , polysoup

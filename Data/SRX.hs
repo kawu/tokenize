@@ -1,45 +1,55 @@
+{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE DeriveFunctor #-}
+
 module Data.SRX
 ( SRX (..)
 , Lang (..)
 , Rule (..)
--- , merge
--- , mkRE
+, merge
+, mergeBy
+, ruleRE
 ) where
 
 import Prelude hiding (break)
+import Data.List (find)
+import Data.Maybe (maybeToList)
 import Text.Regex.Applicative
-import Text.Regex.Parse
+import Data.Regex.Parse
 
 -- | Header is ignored for now.  We assume, that 'cascading' flag is on.
-type SRX = [Lang] 
+newtype SRX t = SRX
+    { unSRX :: [Lang t] }
+    deriving (Show, Functor)
 
-data Lang = Lang
+data Lang t = Lang
     { langName  :: String
-    , rules     :: [Rule] }
-    deriving (Show)
+    , rules     :: [Rule t] }
+    deriving (Show, Functor)
 
-data Rule = Rule
+data Rule t = Rule
     { break     :: Bool
-    , before    :: String
-    , after     :: String }
-    deriving (Show)
+    , before    :: t
+    , after     :: t }
+    deriving (Show, Functor)
 
--- -- | Now we would like to be able to fold (<|>) operation
--- -- on a list of rules:
--- 
--- data Result t
---     = Break [t] [t] -- ^ When break rule fired
---     | NoBreak [t]   -- ^ When no-break rule fired
--- 
--- merge :: [Rule] -> RE Char (Result Char)
--- merge [] = error "merge: empty list of rules"
--- merge rs = foldl1 (<|>) (map mkRE rs)
--- 
--- mkRE :: Rule -> RE Char (Result Char)
--- mkRE r
---     | break r   = Break <$> befR <*> aftR
---     | otherwise = noBreak <$> befR <*> aftR
---   where
---     befR = parseRegex (before r)
---     aftR = parseRegex (after r)
---     noBreak x y = NoBreak (x ++ y)
+data Result a
+    = Break a a -- ^ When break rule fired
+    | NoBreak a   -- ^ When no-break rule fired
+
+merge :: [Rule (RE t [a])] -> RE t (Result [a])
+merge [] = error "merge: empty list of rules"
+merge rs = foldl1 (<|>) (map ruleRE rs)
+
+-- | Merge rules from chosen languages.
+mergeBy :: [String] -> SRX (RE t [a]) -> RE t (Result [a])
+mergeBy names srx = merge . concat $
+    [ rules lang
+    | name <- names
+    , lang <- maybeToList (find ((name==) . langName) (unSRX srx)) ]
+
+ruleRE :: Rule (RE t [a]) -> RE t (Result [a])
+ruleRE Rule{..}
+    | break  	= Break	  <$> before <*> after
+    | otherwise = noBreak <$> before <*> after
+  where
+    noBreak x y = NoBreak (x ++ y)

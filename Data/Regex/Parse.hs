@@ -1,9 +1,12 @@
 {-# LANGUAGE RecordWildCards #-}
 
 module Data.Regex.Parse
-(
+( IsRE (..)
+, Tok (..)
+, mkToks
 ) where
 
+import qualified Data.Set as S
 import qualified Text.Regex.Applicative as R
 import Text.Regex.Applicative hiding (RE)
 import qualified  Data.Char as C
@@ -128,8 +131,8 @@ instance IsRE AtomRE where
         Symbol x            -> char x
         Brackets x          -> mkRE x
         WordBoundary        -> wb
-        UniProp True cat    -> prop cat
-        UniProp False cat   -> noProp cat
+        UniProp True cats   -> prop cats
+        UniProp False cats  -> noProp cats
         Space               -> space
         WordChar True       -> wordChar
         WordChar False      -> notWordChar
@@ -162,8 +165,8 @@ instance IsPred RangeRE where
 
 instance IsPred RanPartRE where
     mkPred (RanSymbol x)            = (==x)
-    mkPred (RanUniProp True cat)    = hasProp cat
-    mkPred (RanUniProp False cat)   = hasNoProp cat
+    mkPred (RanUniProp True cats)   = hasProp cats
+    mkPred (RanUniProp False cats)  = not . hasProp cats
     mkPred (RanRange p q)           = (&&) <$> (>=p) <*> (<=q)
     mkPred (RanEmbed ran)           = mkPred ran
 
@@ -191,17 +194,16 @@ lineBeg = [] <$ psym isLineBeg
 lineEnd :: RE
 lineEnd = [] <$ psym isLineEnd
 
-hasProp :: C.GeneralCategory -> Char -> Bool
-hasProp cat = (==cat) . C.generalCategory
+hasProp :: [C.GeneralCategory] -> Char -> Bool
+hasProp cats =
+    let s = S.fromList cats
+    in  flip S.member s . C.generalCategory
 
-prop :: C.GeneralCategory -> RE
+prop :: [C.GeneralCategory] -> RE
 prop cat = pchar (hasProp cat)
 
-hasNoProp :: C.GeneralCategory -> Char -> Bool
-hasNoProp cat = (/=cat) . C.generalCategory
-
-noProp :: C.GeneralCategory -> RE
-noProp cat = pchar (hasNoProp cat)
+noProp :: [C.GeneralCategory] -> RE
+noProp cat = pchar (not . hasProp cat)
 
 space :: RE
 space = pchar isSpace

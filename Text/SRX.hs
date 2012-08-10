@@ -6,9 +6,13 @@ import Control.Applicative ((<$>), (<*>))
 import qualified Text.XML.PolySoup as Soup
 import Text.XML.PolySoup hiding (XmlParser, Parser)
 
-import Data.SRX
+import qualified Data.SRX as S
 
 type Parser a = Soup.XmlParser String a
+
+type SRX    = S.SRX String
+type Lang   = S.Lang String
+type Rule   = S.Rule String
 
 srxP :: Parser SRX
 srxP = tag "srx" `joinR` do
@@ -16,18 +20,18 @@ srxP = tag "srx" `joinR` do
     bodyP
 
 bodyP :: Parser SRX
-bodyP = tag "body" `joinR` (langsP <* mapRulesP)
+bodyP = S.SRX <$> (tag "body" `joinR` (langsP <* mapRulesP))
 
 langsP :: Parser [Lang]
 langsP = tag "languagerules" `joinR` many1 langP
 
 langP :: Parser Lang
 langP = (tag "languagerule" *> getAttr "languagerulename") `join`
-  \name -> Lang name <$> many1 ruleP
+  \name -> S.Lang name <$> many1 ruleP
 
 ruleP :: Parser Rule
 ruleP = (tag "rule" *> getAttr "break") `join` \break ->
-    (Rule (break == "yes") <$> beforeP <*> afterP)
+    (S.Rule (break == "yes") <$> beforeP <*> afterP)
 
 beforeP :: Parser String
 beforeP = tag "beforebreak" `joinR` do
