@@ -9,6 +9,7 @@ Build-type:         Simple
 Exposed-modules:    Data.Token
 		    Data.SRX
 		    Data.Regex
+		    Data.Regex.Parse
 		    Text.Tokenize.Simple.String
 		    Text.Tokenize.Util.String
 		    Text.SRX
