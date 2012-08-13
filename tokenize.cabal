@@ -12,12 +12,15 @@ Exposed-modules:    Data.Token
 		    Data.Regex.Parse
 		    Text.Tokenize.Simple.String
 		    Text.Tokenize.Util.String
+		    Text.Tokenize.SRX
 		    Text.SRX
 		    Text.Regex.Parse
 Other-modules:      Paths_tokenize
 Build-Depends:      base
                   , containers
                   , regex-applicative
+                  , regex-pcre
+                  , utf8-string
                   , polyparse
                   , polysoup
 Data-files:         config/segment.srx

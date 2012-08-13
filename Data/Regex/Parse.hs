@@ -19,6 +19,7 @@ data Tok
         { wordBoundaryS  :: Bool
         , lineBegS       :: Bool
         , lineEndS       :: Bool }
+    deriving (Show)
 
 isChar :: Tok -> Bool
 isChar (Tok _) = True
@@ -42,9 +43,14 @@ isLineEnd :: Tok -> Bool
 isLineEnd Sep{..} = lineEndS
 isLineEnd _       = False
 
+-- | Is it a character, and if so, does it satisfy the given predicate?
+charSat :: (Char -> Bool) -> Tok -> Bool 
+charSat p (Tok x) = p x
+charSat p _       = False
+
 unChar :: Tok -> Char
 unChar (Tok x) = x
-unChar _       = error "unChar: token is not a character"
+unChar t       = error $ "unChar: token is not a character: " ++ show t
 
 -- | Regex is a data structure representing a regular expression.
 -- RE is its version transformed to an applicative parser.
@@ -54,9 +60,11 @@ class IsRE t where
     mkRE :: t -> RE
 
 instance IsRE UnionRE where
+    mkRE (UnionRE []) = empty
     mkRE (UnionRE xs) = foldl1 (<|>) (map mkRE xs)
 
 instance IsRE SeqRE where
+    mkRE (SeqRE []) = error "[mkRE] null SeqRE"
     mkRE (SeqRE xs) = foldl1 (<++>) (map mkRE xs)
 
 (<++>) :: Applicative f => f [a] -> f [a] -> f [a]
@@ -170,12 +178,22 @@ instance IsPred RanPartRE where
     mkPred (RanRange p q)           = (&&) <$> (>=p) <*> (<=q)
     mkPred (RanEmbed ran)           = mkPred ran
 
--- | Ignore non-character tokens and check if the first character
--- satisfies the given predicate.
+-- -- | Ignore non-character tokens and check if the first character
+-- -- satisfies the given predicate.
+-- pchar :: (Char -> Bool) -> RE
+-- pchar p = (:[]) . unChar <$>
+--     (  many (psym (not . isChar))
+--     *> psym (p . unChar) )
+-- 
+-- pchar :: (Char -> Bool) -> RE
+-- pchar p
+--     =   ((:[]) . unChar <$> psym (charSat p))
+--     <|> (psym (not . isChar) *> pchar p)
+
 pchar :: (Char -> Bool) -> RE
-pchar p = (:[]) . unChar <$>
-    (  many (psym (not . isChar))
-    *> psym (p . unChar) )
+pchar p =
+    let re = many (psym (not.isChar)) *> psym (charSat p)
+    in  (:[]) . unChar <$> re
 
 -- | Ignore non-character tokens and check if the first character
 -- is equall to x.
